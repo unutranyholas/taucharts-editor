@@ -1,7 +1,7 @@
 "use strict";
 
-var datasets = {
-    CometsData: [{
+var datasets = [{
+    data: [{
         "Designation": "419880 (2011 AH37)",
         "Discovery Date": "01/07/2011",
         "H (mag)": 19.7,
@@ -2224,14 +2224,72 @@ var datasets = {
         "PHA": "N",
         "Orbit Class": "Amor"
     }].map(function (comet) {
-        comet['Discovery Date'] = new Date(comet['Discovery Date']);return comet;
-    })
-};
+        comet['Discovery Date'] = new Date(comet['Discovery Date']);
+        return comet;
+    }),
+    defaultConfig: {
+        data: 'Comets',
+        type: 'scatterplot',
+        x: 'Discovery Date',
+        y: ['PHA', 'q (AU)'],
+        color: 'Orbit Class',
+        size: 'period (yr)',
+        plugins: ['tooltip', 'legend']
+    }
+}, {
+    data: [],
+    defaultConfig: {
+        data: 'WorldBank',
+        type: 'scatterplot',
+        x: 'Adolescent fertility rate (births per 1,000 women ages 15-19)',
+        y: 'Internet users (per 100 people)',
+        color: 'Region',
+        size: null,
+        plugins: ['tooltip', 'legend', 'trendline']
+    }
+}];
+
+d3.csv("data/worldbank.csv", function (row) {
+    return _.mapObject(row, function (val, key) {
+        var result = val === '..' ? 0 : val;
+        return !isNaN(result) ? parseFloat(result) : result;
+    });
+}, function (preparedDataset) {
+
+    var mergedData = [];
+
+    var nestedByCountry = d3.nest().key(function (d) {
+        return d['Country Name'];
+    }).entries(preparedDataset);
+
+    nestedByCountry.forEach(function (country) {
+
+        var merged = country.values.reduce(function (prev, cur) {
+            for (var attr in prev) {
+                cur[attr] = cur[attr] === 0 ? prev[attr] : cur[attr];
+            }
+            return cur;
+        });
+
+        mergedData.push(merged);
+    });
+
+    findDataset('WorldBank').data = mergedData;
+});
+
+function findDataset(name) {
+    return _.find(datasets, function (dataset) {
+        return dataset.defaultConfig.data === name;
+    });
+}
+
+console.log(findDataset('WorldBank'));
 
 var prepareConfig = function prepareConfig(config) {
 
-    var clone = JSON.parse(JSON.stringify(config));
-    clone.data = datasets[config.data];
+    var clone = _.clone(config);
+    clone.data = findDataset(config.data).data;
+
     clone.plugins = config.plugins.map(function (field) {
         return tauCharts.api.plugins.get(field)();
     });
@@ -2255,55 +2313,11 @@ var toggleArray = function toggleArray(array, value) {
 var chartTypes = ['scatterplot', 'line', 'area', 'bar', 'horizontal-bar', 'stacked-bar', 'horizontal-stacked-bar'];
 var pluginsList = ['tooltip', 'legend', 'quick-filter', 'trendline'];
 
-d3.csv("data/worldbank2.csv", function (row) {
-    return _.mapObject(row, function (val, key) {
-        var result = val === '..' ? 0 : val;
-        //console.log(result);
-        return !isNaN(result) && !_.isNull(result) ? parseFloat(result) : result;
-    });
-}, function (preparedDataset) {
-
-    var mergedData = [];
-
-    var nestedByCountry = d3.nest().key(function (d) {
-        return d['Country Name'];
-    }).entries(preparedDataset);
-
-    nestedByCountry.forEach(function (country) {
-
-        var merged = country.values.reduce(function (prev, cur) {
-            for (var attr in prev) {
-                cur[attr] = cur[attr] === 0 ? prev[attr] : cur[attr];
-            }
-            return cur;
-        });
-
-        var filtered = _.pick(merged, function (value) {
-            return !_.isNull(value);
-        });
-
-        console.log(filtered);
-
-        mergedData.push(filtered);
-    });
-
-    datasets['WorldBank'] = mergedData;
-});
-
-var config = {
-    data: 'CometsData',
-    type: 'scatterplot',
-    x: 'Discovery Date',
-    y: ['PHA', 'q (AU)'],
-    color: 'Orbit Class',
-    size: 'period (yr)',
-    plugins: ['tooltip', 'legend']
-};
-
+var config = _.clone(datasets[0].defaultConfig);
 var chart = new tauCharts.Chart(prepareConfig(config));
 chart.renderTo('#chart');
 
-function updateChart(config, changes) {
+function updateChart(changes) {
 
     if (config['x'] === changes['y']) {
         config['x'] = config['y'];
@@ -2331,18 +2345,9 @@ function updateChart(config, changes) {
     }
 }
 
-var replaceDataset = function replaceDataset(config, newDataset) {
-
-    var sampleData = datasets[newDataset][0];
-    var changes = {
-        data: newDataset,
-        x: _.keys(sampleData)[0],
-        y: _.keys(sampleData)[1],
-        size: null,
-        color: null
-    };
-
-    updateChart(config, changes);
+var replaceDataset = function replaceDataset(newDataset) {
+    config = _.clone(findDataset(newDataset).defaultConfig);
+    updateChart({});
 };
 
 var SelectPropertyLink = React.createClass({
@@ -2438,7 +2443,7 @@ var DropDownMenu = React.createClass({
                     changes[name] = result;
             }
 
-            name === 'data' ? replaceDataset(config, value) : updateChart(config, changes);
+            name === 'data' ? replaceDataset(value) : updateChart(changes);
         }
     }
 });
@@ -2451,7 +2456,9 @@ var PropertyLine = React.createClass({
         var value = this.props.value;
         var name = this.props.name;
         var type = _.isArray(value) && 'array' || _.isString(value) && 'string' || _.isNull(value) && 'null';
-        var options = name === 'type' && chartTypes || name === 'data' && _.keys(datasets) || this.props.options;
+        var options = name === 'type' && chartTypes || name === 'data' && datasets.map(function (d) {
+            return d.defaultConfig.data;
+        }) || this.props.options;
         var menu = this.props.menuItem === name;
 
         var links = React.createElement(SelectPropertyLink, { value: value, type: type, name: name });
@@ -2533,7 +2540,7 @@ var PluginLine = React.createClass({
         var changes = {};
         changes.plugins = this.props.name;
 
-        updateChart(config, changes);
+        updateChart(changes);
     }
 });
 
@@ -2582,7 +2589,7 @@ var ChartConfig = React.createClass({
     },
     render: function render() {
         var config = this.props.config;
-        var options = Object.keys(this.props.datasets[config.data][0]).map(function (option) {
+        var options = Object.keys(findDataset(config.data).data[0]).map(function (option) {
             return option;
         });
         var self = this;
