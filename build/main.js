@@ -2253,7 +2253,42 @@ var toggleArray = function toggleArray(array, value) {
 };
 
 var chartTypes = ['scatterplot', 'line', 'area', 'bar', 'horizontal-bar', 'stacked-bar', 'horizontal-stacked-bar'];
-var pluginsList = ['tooltip', 'legend', 'trendline'];
+var pluginsList = ['tooltip', 'legend', 'quick-filter', 'trendline'];
+
+d3.csv("data/worldbank2.csv", function (row) {
+    return _.mapObject(row, function (val, key) {
+        var result = val === '..' ? 0 : val;
+        //console.log(result);
+        return !isNaN(result) && !_.isNull(result) ? parseFloat(result) : result;
+    });
+}, function (preparedDataset) {
+
+    var mergedData = [];
+
+    var nestedByCountry = d3.nest().key(function (d) {
+        return d['Country Name'];
+    }).entries(preparedDataset);
+
+    nestedByCountry.forEach(function (country) {
+
+        var merged = country.values.reduce(function (prev, cur) {
+            for (var attr in prev) {
+                cur[attr] = cur[attr] === 0 ? prev[attr] : cur[attr];
+            }
+            return cur;
+        });
+
+        var filtered = _.pick(merged, function (value) {
+            return !_.isNull(value);
+        });
+
+        console.log(filtered);
+
+        mergedData.push(filtered);
+    });
+
+    datasets['WorldBank'] = mergedData;
+});
 
 var config = {
     data: 'CometsData',
@@ -2288,8 +2323,12 @@ function updateChart(config, changes) {
     chart.destroy();
     document.getElementById('chart').innerHTML = '';
 
-    chart = new tauCharts.Chart(prepareConfig(config));
-    chart.renderTo('#chart');
+    try {
+        chart = new tauCharts.Chart(prepareConfig(config));
+        chart.renderTo('#chart');
+    } catch (err) {
+        console.log(err);
+    }
 }
 
 var replaceDataset = function replaceDataset(config, newDataset) {
