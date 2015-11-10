@@ -20,7 +20,7 @@ var App = React.createClass({
         return {config: this.getConfigByNumber(0)};
     },
     getConfigByNumber: function(n) {
-        return this.props.configs[n];
+        return _.clone(this.props.configs[n]);
     },
     render: function () {
         return (
@@ -50,7 +50,7 @@ var App = React.createClass({
     prepareConfig: function (config) {
 
         var clone = _.clone(config);
-        clone.data = datasets[config.data];
+        clone.data = this.props.datasets[config.data];
 
         clone.plugins = config.plugins.map(function (field) {
             return tauCharts.api.plugins.get(field)();
@@ -181,10 +181,10 @@ var PropertyLine = React.createClass({
 
         var value = this.props.value;
         var name = this.props.name;
+        var datasets = _.keys(this.props.datasets);
+
         var type = (_.isArray(value) && 'array') || (_.isString(value) && 'string') || (_.isNull(value) && 'null');
-        var options = ((name === 'type') && chartTypes) || ((name === 'data') && configs.map(function (d) {
-                return d.data
-            })) || this.props.options;
+        var options = ((name === 'type') && chartTypes) || ((name === 'data') && datasets) || this.props.options;
         var menu = (this.props.menuItem === name);
 
         var links = (<SelectPropertyLink value={value} type={type} name={name}/>);
@@ -296,7 +296,7 @@ var ChartConfig = React.createClass({
         }).map(function (field, i) {
 
             return (
-                <PropertyLine key={i} name={field} value={config[field]} options={options}
+                <PropertyLine key={i} name={field} value={config[field]} options={options} datasets={datasets}
                               menuItem={self.state.menuItem} updateState={self.updateState} replaceDataset={self.props.replaceDataset} updateConfig={self.props.updateConfig} />
             )
         });
@@ -322,3 +322,5 @@ ReactDOM.render(
     document.getElementById('container')
 );
 
+datasets={};
+configs=[];
