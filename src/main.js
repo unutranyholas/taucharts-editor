@@ -2448,6 +2448,17 @@ var datasets = [{
             size:    null,
             plugins: ['tooltip','legend','trendline']
         }
+    }, {
+        data: [],
+        defaultConfig: {
+            data:   'EnglishPremierLeague',
+            type:   'line',
+            x:      'Year',
+            y:      'Points',
+            color:  'Position',
+            size:    null,
+            plugins: ['tooltip','legend']
+        }
     }];
 
 d3.csv("data/worldbank.csv",function(row){
@@ -2476,6 +2487,18 @@ d3.csv("data/worldbank.csv",function(row){
     });
 
     findDataset('WorldBank').data = mergedData;
+});
+
+d3.csv("data/epl.csv",
+    function(row){
+        return _.mapObject(row, function(val, key){
+            return (!isNaN(val) && key!=='Position') ? parseFloat(val) : val });
+    },
+    function(data){
+    findDataset('EnglishPremierLeague').data = data.map(function(item){
+        item['Year'] = new Date(item['Year']);
+        return item
+    });
 });
 
 function findDataset(name) {

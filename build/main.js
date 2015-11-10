@@ -1,5 +1,3 @@
-"use strict";
-
 var datasets = [{
     data: [{
         "Designation": "419880 (2011 AH37)",
@@ -2247,6 +2245,17 @@ var datasets = [{
         size: null,
         plugins: ['tooltip', 'legend', 'trendline']
     }
+}, {
+    data: [],
+    defaultConfig: {
+        data: 'EnglishPremierLeague',
+        type: 'line',
+        x: 'Year',
+        y: 'Points',
+        color: 'Position',
+        size: null,
+        plugins: ['tooltip', 'legend']
+    }
 }];
 
 d3.csv("data/worldbank.csv", function (row) {
@@ -2277,6 +2286,17 @@ d3.csv("data/worldbank.csv", function (row) {
     findDataset('WorldBank').data = mergedData;
 });
 
+d3.csv("data/epl.csv", function (row) {
+    return _.mapObject(row, function (val, key) {
+        return !isNaN(val) && key !== 'Position' ? parseFloat(val) : val;
+    });
+}, function (data) {
+    findDataset('EnglishPremierLeague').data = data.map(function (item) {
+        item['Year'] = new Date(item['Year']);
+        return item;
+    });
+});
+
 function findDataset(name) {
     return _.find(datasets, function (dataset) {
         return dataset.defaultConfig.data === name;
@@ -2285,7 +2305,7 @@ function findDataset(name) {
 
 console.log(findDataset('WorldBank'));
 
-var prepareConfig = function prepareConfig(config) {
+var prepareConfig = function (config) {
 
     var clone = _.clone(config);
     clone.data = findDataset(config.data).data;
@@ -2297,7 +2317,7 @@ var prepareConfig = function prepareConfig(config) {
     return clone;
 };
 
-var toggleArray = function toggleArray(array, value) {
+var toggleArray = function (array, value) {
 
     var index = array.indexOf(value);
 
@@ -2345,15 +2365,13 @@ function updateChart(changes) {
     }
 }
 
-var replaceDataset = function replaceDataset(newDataset) {
+var replaceDataset = function (newDataset) {
     config = _.clone(findDataset(newDataset).defaultConfig);
     updateChart({});
 };
 
 var SelectPropertyLink = React.createClass({
-    displayName: "SelectPropertyLink",
-
-    render: function render() {
+    render: function () {
 
         var value = _.isNull(this.props.value) && 'null' || this.props.value;
         var apost = (this.props.type === 'string' || this.props.type === 'array') && this.props.name !== 'data' ? ['\'', '\''] : ['', ''];
@@ -2374,19 +2392,18 @@ var SelectPropertyLink = React.createClass({
 });
 
 var DropDownMenu = React.createClass({
-    displayName: "DropDownMenu",
 
-    getInitialState: function getInitialState() {
+    getInitialState: function () {
         return {
             checked: this.getValue()
         };
     },
 
-    getValue: function getValue() {
+    getValue: function () {
         return !_.isArray(this.props.value) ? [this.props.value] : this.props.value;
     },
 
-    render: function render() {
+    render: function () {
 
         var name = this.props.name;
         var options = this.props.options;
@@ -2417,7 +2434,7 @@ var DropDownMenu = React.createClass({
             list
         );
     },
-    handleClick: function handleClick(event) {
+    handleClick: function (event) {
 
         var checked = this.state.checked;
         var minChecked = this.props.minChecked;
@@ -2449,9 +2466,8 @@ var DropDownMenu = React.createClass({
 });
 
 var PropertyLine = React.createClass({
-    displayName: "PropertyLine",
 
-    render: function render() {
+    render: function () {
 
         var value = this.props.value;
         var name = this.props.name;
@@ -2509,15 +2525,13 @@ var PropertyLine = React.createClass({
             ","
         );
     },
-    handleClick: function handleClick() {
+    handleClick: function () {
         this.props.menuItem === this.props.name ? this.props.updateState(null) : this.props.updateState(this.props.name);
     }
 });
 
 var PluginLine = React.createClass({
-    displayName: "PluginLine",
-
-    render: function render() {
+    render: function () {
 
         var name = this.props.name;
         var isEnabled = this.props.isEnabled ? '' : 'disabled';
@@ -2536,7 +2550,7 @@ var PluginLine = React.createClass({
             ")(),"
         );
     },
-    handleClick: function handleClick() {
+    handleClick: function () {
         var changes = {};
         changes.plugins = this.props.name;
 
@@ -2545,9 +2559,7 @@ var PluginLine = React.createClass({
 });
 
 var PluginsBlock = React.createClass({
-    displayName: "PluginsBlock",
-
-    render: function render() {
+    render: function () {
 
         var value = this.props.value;
         var plugins = pluginsList.map(function (plugin, i) {
@@ -2580,14 +2592,13 @@ var PluginsBlock = React.createClass({
 });
 
 var ChartConfig = React.createClass({
-    displayName: "ChartConfig",
 
-    getInitialState: function getInitialState() {
+    getInitialState: function () {
         return {
             menuItem: null
         };
     },
-    render: function render() {
+    render: function () {
         var config = this.props.config;
         var options = Object.keys(findDataset(config.data).data[0]).map(function (option) {
             return option;
@@ -2617,7 +2628,7 @@ var ChartConfig = React.createClass({
             )
         );
     },
-    updateState: function updateState(menuItem) {
+    updateState: function (menuItem) {
         this.setState({
             menuItem: menuItem
         });
