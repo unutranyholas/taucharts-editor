@@ -371,6 +371,3 @@ var ChartConfig = React.createClass({
 });
 
 ReactDOM.render(React.createElement(App, { configs: configs, datasets: datasets }), document.getElementById('container'));
-
-datasets = {};
-configs = [];

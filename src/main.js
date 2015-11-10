@@ -321,6 +321,3 @@ ReactDOM.render(
     <App configs={configs} datasets={datasets} />,
     document.getElementById('container')
 );
-
-datasets={};
-configs=[];
