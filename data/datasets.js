@@ -22935,29 +22935,3 @@ var datasets = {
         return d
     })
 };
-
-var configs = [{
-    data: 'Comets',
-    type: 'scatterplot',
-    x: 'Discovery Date',
-    y: ['PHA', 'q (AU)'],
-    color: 'Orbit Class',
-    size: 'period (yr)',
-    plugins: ['tooltip', 'legend']
-}, {
-    data: 'WorldBank',
-    type: 'scatterplot',
-    x: 'Adolescent fertility rate (births per 1,000 women ages 15-19)',
-    y: 'Internet users (per 100 people)',
-    color: 'Region',
-    size: null,
-    plugins: ['tooltip', 'legend', 'trendline']
-}, {
-    data: 'EnglishPremierLeague',
-    type: 'line',
-    x: 'Year',
-    y: 'Points',
-    color: 'Position',
-    size: null,
-    plugins: ['tooltip', 'legend']
-}];

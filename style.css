@@ -201,3 +201,43 @@ body {
     padding: 1em;
     height: calc(100% - 2em);
 }
+
+.editor .navigator {
+    position: absolute;
+
+    top: 0px;
+    background-color: #8beebb;
+}
+
+.editor .navigator button {
+    display: inline-block;
+    padding: 6px 16px 8px;
+    background-color: transparent;
+    border: none;
+    font: 15px 'Inconsolata', 'Courier', monospace;
+    cursor: pointer;
+}
+
+.editor .navigator button:focus {
+    outline: 0;
+}
+
+.editor .navigator button[disabled] {
+    color: rgba(0, 0, 0, 0.3);
+}
+
+.editor .navigator button[disabled]:hover {
+    background-color: transparent;
+}
+
+.editor .navigator button:hover {
+    background-color: rgba(71, 127, 194, 0.2);
+}
+
+.editor .code span.syn{
+    font-style: italic;
+}
+
+.editor .code span.string{
+    color: #4da771;
+}

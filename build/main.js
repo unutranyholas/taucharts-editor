@@ -1,17 +1,48 @@
 var chartTypes = ['scatterplot', 'line', 'area', 'bar', 'horizontal-bar', 'stacked-bar', 'horizontal-stacked-bar'];
 var pluginsList = ['tooltip', 'legend', 'quick-filter', 'trendline'];
 
+var configs = [{
+    data: 'Comets',
+    type: 'scatterplot',
+    x: 'Discovery Date',
+    y: ['PHA', 'q (AU)'],
+    color: 'Orbit Class',
+    size: 'period (yr)',
+    plugins: ['tooltip', 'legend']
+}, {
+    data: 'WorldBank',
+    type: 'scatterplot',
+    x: 'Adolescent fertility rate (births per 1,000 women ages 15-19)',
+    y: 'Internet users (per 100 people)',
+    color: 'Region',
+    size: null,
+    plugins: ['tooltip', 'legend', 'trendline']
+}, {
+    data: 'EnglishPremierLeague',
+    type: 'line',
+    x: 'Year',
+    y: 'Points',
+    color: 'Position',
+    size: null,
+    plugins: ['tooltip', 'legend']
+}, {
+    data: 'EnglishPremierLeague',
+    type: 'scatterplot',
+    x: 'Year',
+    y: 'Points',
+    color: 'Club',
+    size: null,
+    plugins: ['tooltip', 'legend']
+}];
+
 var toggleArray = function (array, value) {
-
     var index = array.indexOf(value);
-
-    if (index === -1) {
-        array.push(value);
-    } else {
-        array.splice(index, 1);
-    }
-
+    index === -1 ? array.push(value) : array.splice(index, 1);
     return array;
+};
+
+var randomFromArray = function (array) {
+    return array[Math.floor(Math.random() * array.length)];
 };
 
 var App = React.createClass({
@@ -25,10 +56,13 @@ var App = React.createClass({
         return React.createElement(
             'section',
             { className: 'editor' },
+            React.createElement(NavButtons, { updateConfig: this.updateConfig, randomConfig: this.getRandomConfig, getConfigByNumber: this.getConfigByNumber, maxConfig: this.props.configs.length }),
             React.createElement(
                 'div',
                 { className: 'code', id: 'code' },
-                React.createElement(ChartConfig, { config: this.state.config, datasets: this.props.datasets, replaceDataset: this.replaceDataset, updateConfig: this.updateConfig })
+                React.createElement(ChartConfig, { config: this.state.config, datasets: this.props.datasets,
+                    replaceDataset: this.replaceDataset,
+                    updateConfig: this.updateConfig })
             ),
             React.createElement('div', { className: 'chart', id: 'chart' })
         );
@@ -38,7 +72,9 @@ var App = React.createClass({
             this.chart = new tauCharts.Chart(this.prepareConfig(this.state.config));
             this.chart.renderTo('#chart');
         } catch (err) {
+            console.log(this.state.config);
             console.log(err);
+            console.log(chart);
         }
     },
     componentDidMount: function () {
@@ -54,6 +90,7 @@ var App = React.createClass({
 
         var clone = _.clone(config);
         clone.data = this.props.datasets[config.data];
+        //clone.guide = {interpolate: 'cardinal'};
 
         clone.plugins = config.plugins.map(function (field) {
             return tauCharts.api.plugins.get(field)();
@@ -84,13 +121,40 @@ var App = React.createClass({
         }
 
         for (var attr in changes) {
-            config[attr] = attr === 'plugins' ? _.intersection(pluginsList, toggleArray(config[attr], changes[attr])) : changes[attr];
+            config[attr] = changes[attr];
             //intersection to save plugins order
         }
 
         this.setState({
             config: config
         });
+    },
+    getRandomConfig: function () {
+
+        var categorical = {
+            Comets: ['PHA', 'Orbit Class'],
+            WorldBank: ['Country Name', 'Income Group', 'Region'],
+            EnglishPremierLeague: ['Club', 'Position', 'Season']
+        };
+
+        var chartTypes = ['scatterplot', 'scatterplot', 'scatterplot', 'line', 'bar'];
+        var pluginsList = ['tooltip', 'legend', 'trendline'];
+
+        var config = {};
+
+        config.data = randomFromArray(_.keys(this.props.datasets));
+        config.type = randomFromArray(chartTypes);
+        config.x = randomFromArray(_.keys(datasets[config.data][0]));
+        config.y = randomFromArray(_.keys(datasets[config.data][0]));
+
+        config.x = Math.random() > 0.8 ? [randomFromArray(categorical[config.data]), config.x] : config.x;
+        config.y = Math.random() > 0.8 ? [randomFromArray(categorical[config.data]), config.y] : config.y;
+
+        config.size = Math.random() > 0.7 ? null : randomFromArray(_.keys(datasets[config.data][0]));
+        config.color = randomFromArray(categorical[config.data]);
+        config.plugins = pluginsList;
+
+        return config;
     }
 });
 
@@ -229,7 +293,8 @@ var PropertyLine = React.createClass({
                 React.createElement(
                     'dd',
                     { className: type },
-                    React.createElement(PluginsBlock, { value: value, options: options, updateConfig: this.props.updateConfig })
+                    React.createElement(PluginsBlock, { value: value, options: options,
+                        updateConfig: this.props.updateConfig })
                 )
             );
         }
@@ -283,7 +348,7 @@ var PluginLine = React.createClass({
     },
     handleClick: function () {
         var changes = {};
-        changes.plugins = this.props.name;
+        changes.plugins = toggleArray(this.props.activePlugins, this.props.name);
 
         this.props.updateConfig(changes);
     }
@@ -298,7 +363,7 @@ var PluginsBlock = React.createClass({
 
             var isEnabled = value.indexOf(plugin) > -1;
 
-            return React.createElement(PluginLine, { key: i, name: plugin, isEnabled: isEnabled, updateConfig: self.props.updateConfig });
+            return React.createElement(PluginLine, { key: i, name: plugin, isEnabled: isEnabled, updateConfig: self.props.updateConfig, activePlugins: self.props.value });
         });
 
         return React.createElement(
@@ -344,7 +409,8 @@ var ChartConfig = React.createClass({
         }).map(function (field, i) {
 
             return React.createElement(PropertyLine, { key: i, name: field, value: config[field], options: options, datasets: datasets,
-                menuItem: self.state.menuItem, updateState: self.updateState, replaceDataset: self.props.replaceDataset, updateConfig: self.props.updateConfig });
+                menuItem: self.state.menuItem, updateState: self.updateState,
+                replaceDataset: self.props.replaceDataset, updateConfig: self.props.updateConfig });
         });
 
         return React.createElement(
@@ -353,13 +419,35 @@ var ChartConfig = React.createClass({
             React.createElement(
                 'p',
                 null,
-                '{'
+                React.createElement(
+                    'em',
+                    null,
+                    'var'
+                ),
+                ' chart ',
+                React.createElement(
+                    'em',
+                    null,
+                    '= new'
+                ),
+                ' tauCharts.Chart({'
             ),
             fields,
             React.createElement(
                 'p',
                 null,
-                '}'
+                '});'
+            ),
+            React.createElement(
+                'p',
+                null,
+                'chart.renderTo(',
+                React.createElement(
+                    'em',
+                    null,
+                    '\'#container\''
+                ),
+                ');'
             )
         );
     },
@@ -367,6 +455,44 @@ var ChartConfig = React.createClass({
         this.setState({
             menuItem: menuItem
         });
+    }
+});
+
+var NavButtons = React.createClass({
+    getInitialState: function () {
+        return { configNumber: 0 };
+    },
+    render: function () {
+        return React.createElement(
+            'div',
+            { className: 'navigator' },
+            React.createElement(
+                'button',
+                { className: 'prev', href: 'javascript: void 0', onClick: this.prevChartClick, disabled: this.state.configNumber <= 0 },
+                '«'
+            ),
+            React.createElement(
+                'button',
+                { className: 'next', href: 'javascript: void 0', onClick: this.nextChartClick, disabled: this.state.configNumber >= this.props.maxConfig - 1 },
+                'Next example »'
+            ),
+            React.createElement(
+                'button',
+                { className: 'lucky', href: 'javascript: void 0', onClick: this.luckyClick },
+                'I’m lucky!'
+            )
+        );
+    },
+    nextChartClick: function () {
+        this.state.configNumber++;
+        this.props.updateConfig(this.props.getConfigByNumber(this.state.configNumber));
+    },
+    prevChartClick: function () {
+        this.state.configNumber--;
+        this.props.updateConfig(this.props.getConfigByNumber(this.state.configNumber));
+    },
+    luckyClick: function () {
+        this.props.updateConfig(this.props.randomConfig());
     }
 });
 
