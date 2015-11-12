@@ -33,6 +33,14 @@ var configs = [{
     color: 'Club',
     size: null,
     plugins: ['tooltip', 'legend']
+}, {
+    data: 'EnglishPremierLeague',
+    type: 'stacked-bar',
+    x: 'Club',
+    y: 'Points',
+    color: 'Club',
+    size: null,
+    plugins: ['tooltip']
 }];
 
 var toggleArray = function (array, value) {
@@ -56,14 +64,15 @@ var App = React.createClass({
         return React.createElement(
             'section',
             { className: 'editor' },
-            React.createElement(NavButtons, { updateConfig: this.updateConfig, randomConfig: this.getRandomConfig, getConfigByNumber: this.getConfigByNumber, maxConfig: this.props.configs.length }),
+            React.createElement(NavButtons, { updateConfig: this.updateConfig, randomConfig: this.getRandomConfig,
+                getConfigByNumber: this.getConfigByNumber, maxConfig: this.props.configs.length }),
             React.createElement(
                 'div',
                 { className: 'code', id: 'code' },
                 React.createElement(ChartConfig, { config: this.state.config, datasets: this.props.datasets,
-                    replaceDataset: this.replaceDataset,
-                    updateConfig: this.updateConfig })
+                    replaceDataset: this.replaceDataset, updateConfig: this.updateConfig })
             ),
+            React.createElement('div', { className: 'error', id: 'error' }),
             React.createElement('div', { className: 'chart', id: 'chart' })
         );
     },
@@ -72,9 +81,9 @@ var App = React.createClass({
             this.chart = new tauCharts.Chart(this.prepareConfig(this.state.config));
             this.chart.renderTo('#chart');
         } catch (err) {
-            console.log(this.state.config);
-            console.log(err);
-            console.log(chart);
+
+            document.getElementById('error').classList.add('show');
+            document.getElementById('error').innerHTML = err;
         }
     },
     componentDidMount: function () {
@@ -83,6 +92,8 @@ var App = React.createClass({
     componentDidUpdate: function () {
         this.chart.destroy();
         document.getElementById('chart').innerHTML = '';
+        document.getElementById('error').innerHTML = '';
+        document.getElementById('error').classList.remove('show');
 
         this.renderChart();
     },
@@ -137,22 +148,37 @@ var App = React.createClass({
             EnglishPremierLeague: ['Club', 'Position', 'Season']
         };
 
+        var dates = {
+            Comets: 'Discovery Date',
+            WorldBank: null,
+            EnglishPremierLeague: 'Year'
+        };
+
         var chartTypes = ['scatterplot', 'scatterplot', 'scatterplot', 'line', 'bar'];
         var pluginsList = ['tooltip', 'legend', 'trendline'];
 
         var config = {};
 
-        config.data = randomFromArray(_.keys(this.props.datasets));
-        config.type = randomFromArray(chartTypes);
+        config.data = this.state.config.data;
+
         config.x = randomFromArray(_.keys(datasets[config.data][0]));
         config.y = randomFromArray(_.keys(datasets[config.data][0]));
 
-        config.x = Math.random() > 0.8 ? [randomFromArray(categorical[config.data]), config.x] : config.x;
-        config.y = Math.random() > 0.8 ? [randomFromArray(categorical[config.data]), config.y] : config.y;
+        config.x = Math.random() > 0.8 ? [randomFromArray(_.filter(categorical[config.data], function (p) {
+            return p !== 'Country Name';
+        })), config.x] : config.x;
+        config.y = Math.random() > 0.8 ? [randomFromArray(_.filter(categorical[config.data], function (p) {
+            return p !== 'Country Name';
+        })), config.y] : config.y;
 
         config.size = Math.random() > 0.7 ? null : randomFromArray(_.keys(datasets[config.data][0]));
         config.color = randomFromArray(categorical[config.data]);
         config.plugins = pluginsList;
+
+        config.type = randomFromArray(chartTypes);
+        if (config.x[0] === dates[config.data]) {
+            config.type = 'line';
+        };
 
         return config;
     }
@@ -175,7 +201,7 @@ var SelectPropertyLink = React.createClass({
                 value,
                 apost[1]
             ),
-            this.props.isNotLast ? ', ' : ''
+            this.props.isNotLast ? ', ' : null
         );
     }
 });
@@ -200,7 +226,7 @@ var DropDownMenu = React.createClass({
         var self = this;
 
         var list = options.map(function (item, i) {
-            var isChecked = self.state.checked.indexOf(item) > -1 ? 'checked' : '';
+            var isChecked = self.state.checked.indexOf(item) > -1 ? 'checked' : null;
             return React.createElement(
                 'li',
                 { key: i, className: isChecked },
@@ -215,7 +241,7 @@ var DropDownMenu = React.createClass({
                     { href: 'javascript: void 0', onClick: self.handleClick, 'data-name': name, 'data-value': item,
                         'data-maxchecked': maxChecked, className: 'add' },
                     ' '
-                ) : ''
+                ) : null
             );
         });
 
@@ -315,7 +341,7 @@ var PropertyLine = React.createClass({
                     maxChecked: name === 'x' || name === 'y' ? 2 : 1,
                     minChecked: name === 'size' || name === 'color' ? 0 : 1,
                     replaceDataset: this.props.replaceDataset, updateConfig: this.props.updateConfig
-                }) : '',
+                }) : null,
                 links
             ),
             ','
@@ -330,7 +356,7 @@ var PluginLine = React.createClass({
     render: function () {
 
         var name = this.props.name;
-        var isEnabled = this.props.isEnabled ? '' : 'disabled';
+        var isEnabled = this.props.isEnabled ? null : 'disabled';
 
         return React.createElement(
             'li',
@@ -363,7 +389,8 @@ var PluginsBlock = React.createClass({
 
             var isEnabled = value.indexOf(plugin) > -1;
 
-            return React.createElement(PluginLine, { key: i, name: plugin, isEnabled: isEnabled, updateConfig: self.props.updateConfig, activePlugins: self.props.value });
+            return React.createElement(PluginLine, { key: i, name: plugin, isEnabled: isEnabled, updateConfig: self.props.updateConfig,
+                activePlugins: self.props.value });
         });
 
         return React.createElement(
@@ -468,12 +495,14 @@ var NavButtons = React.createClass({
             { className: 'navigator' },
             React.createElement(
                 'button',
-                { className: 'prev', href: 'javascript: void 0', onClick: this.prevChartClick, disabled: this.state.configNumber <= 0 },
+                { className: 'prev', href: 'javascript: void 0', onClick: this.prevChartClick,
+                    disabled: this.state.configNumber <= 0 },
                 '«'
             ),
             React.createElement(
                 'button',
-                { className: 'next', href: 'javascript: void 0', onClick: this.nextChartClick, disabled: this.state.configNumber >= this.props.maxConfig - 1 },
+                { className: 'next', href: 'javascript: void 0', onClick: this.nextChartClick,
+                    disabled: this.state.configNumber >= this.props.maxConfig - 1 },
                 'Next example »'
             ),
             React.createElement(
