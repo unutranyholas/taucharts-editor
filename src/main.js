@@ -79,7 +79,6 @@ var App = React.createClass({
             this.chart = new tauCharts.Chart(this.prepareConfig(this.state.config));
             this.chart.renderTo('#chart');
         } catch (err) {
-
             document.getElementById('error').classList.add('show');
             document.getElementById('error').innerHTML = err;
         }
@@ -139,38 +138,136 @@ var App = React.createClass({
         });
     },
     getRandomConfig: function () {
+        //In fact, not so random
+
+        var config = {};
+        var data = config.data = this.state.config.data;
+
+        var keys = {
+            Comets: _.keys(datasets['Comets'][0]),
+            WorldBank: _.keys(datasets['WorldBank'][0]),
+            EnglishPremierLeague: _.keys(datasets['EnglishPremierLeague'][0])
+        };
 
         var categorical = {
             Comets: ['PHA', 'Orbit Class'],
-            WorldBank: ['Country Name', 'Income Group', 'Region'],
+            WorldBank: ['Country Name', 'Country Code', 'Income Group', 'Region'],
             EnglishPremierLeague: ['Club', 'Position', 'Season']
         };
 
-        var dates = {
-            Comets: 'Discovery Date',
-            WorldBank: null,
-            EnglishPremierLeague: 'Year'
+        var facets = {
+            Comets: ['PHA', 'Orbit Class'],
+            WorldBank: ['Income Group', 'Region'],
+            EnglishPremierLeague: ['Club', 'Season']
         };
 
-        var chartTypes = ['scatterplot', 'scatterplot', 'scatterplot', 'line', 'bar'];
+        var dates = {
+            Comets: ['Discovery Date'],
+            WorldBank: null,
+            EnglishPremierLeague: ['Year']
+        };
+
+        var ids = {
+            Comets: ['Designation'],
+            WorldBank: ['Country Name', 'Country Code'],
+            EnglishPremierLeague: null
+        };
+
+        var measures = {
+            Comets: _.difference(keys['Comets'], _.union(categorical['Comets'], dates['Comets'], ids['Comets'])),
+            WorldBank: _.difference(keys['WorldBank'], _.union(categorical['WorldBank'], dates['WorldBank'], ids['WorldBank'])),
+            EnglishPremierLeague: _.difference(keys['EnglishPremierLeague'], _.union(categorical['EnglishPremierLeague'], dates['EnglishPremierLeague'], ids['EnglishPremierLeague']))
+        };
+
+        var chartTypes = _.chain({
+            'scatterplot': 21,
+            'line': (data !== 'WorldBank') ? 2 : 0,
+            'area': (data !== 'WorldBank') ? 1 : 0,
+            'bar': (data !== 'EnglishPremierLeague') ? 2 : 0,
+            'horizontal-bar': (data !== 'EnglishPremierLeague') ? 2 : 0,
+            'stacked-bar': 3,
+            'horizontal-stacked-bar': 3
+        }).map(function(value, key){
+            return _.range(value).map(function () { return key });
+        }).flatten().value();
+
+        var facetProb = 0.8;
+        var sizeProb = 0.5;
+        console.log(chartTypes);
+
+
         var pluginsList = ['tooltip', 'legend', 'trendline'];
 
-        var config = {};
-
-        config.data = this.state.config.data;
-
-        config.x = randomFromArray(_.keys(datasets[config.data][0]));
-        config.y = randomFromArray(_.keys(datasets[config.data][0]));
-
-        config.x = (Math.random() > 0.8) ? [randomFromArray(_.filter(categorical[config.data], function(p){return p !== 'Country Name'})), config.x] : config.x;
-        config.y = (Math.random() > 0.8) ? [randomFromArray(_.filter(categorical[config.data], function(p){return p !== 'Country Name'})), config.y] : config.y;
-
-        config.size = (Math.random() > 0.7) ? null : randomFromArray(_.keys(datasets[config.data][0]));
-        config.color = randomFromArray(categorical[config.data]);
-        config.plugins = pluginsList;
-
         config.type = randomFromArray(chartTypes);
-        if(config.x[0] === dates[config.data]) {config.type = 'line'};
+
+        switch (config.type) {
+            case 'horizontal-bar' : //?
+                config.x = randomFromArray(measures[data]);
+                config.y = randomFromArray(ids[data]);
+
+                config.x = (Math.random() > facetProb) ? [randomFromArray(facets[data]), config.x] : config.x;
+
+                config.color = randomFromArray(categorical[data]);
+                config.size = null;
+                break;
+            case 'bar' : //?
+                config.x = randomFromArray(ids[data]);
+                config.y = randomFromArray(measures[data]);
+
+                config.y = (Math.random() > facetProb) ? [randomFromArray(facets[data]), config.y] : config.y;
+
+                config.color = randomFromArray(categorical[data]);
+                config.size = null;
+                break;
+            case 'horizontal-stacked-bar' :
+                config.x = randomFromArray(measures[data]);
+                config.y = randomFromArray(categorical[data]);
+
+                config.x = (Math.random() > facetProb) ? [randomFromArray(facets[data]), config.x] : config.x;
+
+                config.color = randomFromArray(categorical[data]);
+                config.size = null;
+                break;
+            case 'stacked-bar' :
+                config.x = randomFromArray(categorical[data]);
+                config.y = randomFromArray(measures[data]);
+
+                config.y = (Math.random() > facetProb) ? [randomFromArray(facets[data]), config.y] : config.y;
+
+                config.color = randomFromArray(categorical[data]);
+                config.size = null;
+                break;
+            case 'area' :
+                config.x = randomFromArray(dates[data]);
+                config.y = randomFromArray(measures[data]);
+
+                config.y = (Math.random() > facetProb) ? [randomFromArray(facets[data]), config.y] : config.y;
+
+                config.color = null;
+                config.size = null;
+                break;
+            case 'line' :
+                config.x = randomFromArray(dates[data]);
+                config.y = randomFromArray(measures[data]);
+
+                config.y = (Math.random() > facetProb) ? [randomFromArray(facets[data]), config.y] : config.y;
+
+                config.color = randomFromArray(categorical[data]);
+                config.size = null;
+                break;
+            case 'scatterplot' :
+                config.x = randomFromArray(_.union(measures[data], dates[data]));
+                config.y = randomFromArray(measures[data]);
+
+                config.x = (Math.random() > facetProb) ? [randomFromArray(facets[data]), config.x] : config.x;
+                config.y = (Math.random() > facetProb) ? [randomFromArray(facets[data]), config.y] : config.y;
+
+                config.color = randomFromArray(categorical[data]);
+                config.size = (Math.random() > sizeProb) ? randomFromArray(measures[data]) : null;
+                break;
+        }
+
+        config.plugins = pluginsList;
 
         return config
 
