@@ -2,6 +2,30 @@ var chartTypes = ['scatterplot', 'line', 'area', 'bar', 'horizontal-bar', 'stack
 var pluginsList = ['tooltip', 'legend', 'quick-filter', 'trendline'];
 
 var configs = [{
+    data: 'OscarNominees',
+    type: 'scatterplot',
+    x: 'Year',
+    y: 'Runtime',
+    color: 'isWinner',
+    size: null,
+    plugins: ['tooltip', 'legend']
+}, {
+    data: 'OscarNominees',
+    type: 'scatterplot',
+    x: 'Year',
+    y: 'Runtime',
+    color: 'Production',
+    size: null,
+    plugins: ['tooltip', 'legend']
+}, {
+    data: 'OscarNominees',
+    type: 'stacked-bar',
+    x: 'Production',
+    y: 'boxOffice',
+    color: 'isWinner',
+    size: null,
+    plugins: ['tooltip']
+}, {
     data: 'Comets',
     type: 'scatterplot',
     x: 'Discovery Date',
@@ -146,36 +170,42 @@ var App = React.createClass({
         var data = config.data = this.state.config.data;
 
         var keys = {
+            OscarNominees: _.keys(datasets['OscarNominees'][0]),
             Comets: _.keys(datasets['Comets'][0]),
             WorldBank: _.keys(datasets['WorldBank'][0]),
             EnglishPremierLeague: _.keys(datasets['EnglishPremierLeague'][0])
         };
 
         var categorical = {
+            OscarNominees: ['isWinner', 'Rated', 'Genre', 'Language', 'Country', 'Production'],
             Comets: ['PHA', 'Orbit Class'],
             WorldBank: ['Country Name', 'Country Code', 'Income Group', 'Region'],
             EnglishPremierLeague: ['Club', 'Position', 'Season']
         };
 
         var facets = {
+            OscarNominees: ['isWinner', 'Rated', 'Genre', 'Language', 'Country', 'Production'],
             Comets: ['PHA', 'Orbit Class'],
             WorldBank: ['Income Group', 'Region'],
             EnglishPremierLeague: ['Club', 'Season']
         };
 
         var dates = {
+            OscarNominees: ['Released', 'Year', 'DVD'],
             Comets: ['Discovery Date'],
             WorldBank: null,
             EnglishPremierLeague: ['Year']
         };
 
         var ids = {
+            OscarNominees: ['url', 'Title', 'Director', 'Writer', 'Actors', 'Plot', 'imdbID'],
             Comets: ['Designation'],
             WorldBank: ['Country Name', 'Country Code'],
             EnglishPremierLeague: null
         };
 
         var measures = {
+            OscarNominees: _.difference(keys['OscarNominees'], _.union(categorical['OscarNominees'], dates['OscarNominees'], ids['OscarNominees'])),
             Comets: _.difference(keys['Comets'], _.union(categorical['Comets'], dates['Comets'], ids['Comets'])),
             WorldBank: _.difference(keys['WorldBank'], _.union(categorical['WorldBank'], dates['WorldBank'], ids['WorldBank'])),
             EnglishPremierLeague: _.difference(keys['EnglishPremierLeague'], _.union(categorical['EnglishPremierLeague'], dates['EnglishPremierLeague'], ids['EnglishPremierLeague']))
@@ -197,9 +227,8 @@ var App = React.createClass({
 
         var facetProb = 0.8;
         var sizeProb = 0.5;
-        console.log(chartTypes);
 
-        var pluginsList = ['tooltip', 'legend', 'trendline'];
+        var pluginsList = ['tooltip', 'legend'];
 
         config.type = randomFromArray(chartTypes);
 
